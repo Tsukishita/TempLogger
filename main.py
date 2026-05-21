@@ -266,7 +266,7 @@ def ota_update(settings):
             f.write(new_code)
         
         save_version(new_version)
-        update_current_version()
+        update_current_version(new_version)
         
         print_log_to_google_sheet(UPLOAD_TYPE.LOG, LOG_TYPE.INFO, "OTA Success. System Reboot.")
 
@@ -301,14 +301,14 @@ def restore_backup():
 # GASへPOST送信して
 # CURRENT_VERSION更新
 # =========================================================
-def update_current_version():
+def update_current_version(version):
     try: 
         print_log_to_google_sheet(UPLOAD_TYPE.LOG, LOG_TYPE.INFO, "Updating Current Version...")
         
         url = API_URL + API_ID +  "/exec" 
         data = {
           "dataType": UPLOAD_TYPE.UPDATE_VERSION,
-          "version": CURRENT_VERSION,
+          "version": version,
         }
         print(data)
         # リクエストヘッダーを追加
