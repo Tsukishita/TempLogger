@@ -441,16 +441,10 @@ try:
         time.sleep_ms(750)
             
         # 温度取得
-        #t1 = read_temperature(SENSOR_1, 0)
-        #t2 = read_temperature(SENSOR_2, 0)
-        #t3 = read_temperature(SENSOR_3, 0)
-        #t4 = read_temperature(SENSOR_4, 0)
-        
-        t1 = read_temperature(SENSOR_5, 0)
-        t2 = read_temperature(SENSOR_5, 0)
-        t3 = read_temperature(SENSOR_5, 0)
-        t4 = read_temperature(SENSOR_5, 0)
-
+        t1 = read_temperature(SENSOR_1, 0)
+        t2 = read_temperature(SENSOR_2, 0)
+        t3 = read_temperature(SENSOR_3, 0)
+        t4 = read_temperature(SENSOR_4, 0)
 
         post_to_google_sheets(UPLOAD_TYPE.APPEND, t1, t2, t3, t4)
         print_log_to_google_sheet(UPLOAD_TYPE.LOG, LOG_TYPE.INFO, "Success to upload temperture record.")
