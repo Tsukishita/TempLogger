@@ -110,7 +110,8 @@ def connect_wifi():
     if wlan.status() != 3:
         raise Exception("Wifiの接続に失敗しました。")
     else:
-        print("接続成功!")       
+        print("接続成功!")
+        machine.Pin("LED", machine.Pin.OUT).high()
         print_log_to_google_sheet(UPLOAD_TYPE.LOG, LOG_TYPE.INFO, "Wifi is connected.")
     
 def disconnect_wifi():
@@ -310,7 +311,7 @@ def update_current_version(version):
           "dataType": UPLOAD_TYPE.UPDATE_VERSION,
           "version": version,
         }
-        print(data)
+
         # リクエストヘッダーを追加
         headers = {
             "Content-Type": "application/json",  # 必要に応じて設定
