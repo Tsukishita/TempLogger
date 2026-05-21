@@ -1,4 +1,3 @@
-##令和最新版
 import sys
 from io import StringIO
 import network
@@ -186,6 +185,7 @@ def save_version(version):
             json.dump({
                 "version": version
             }, f)
+            print(version)
             CURRENT_VERSION = version
     except Exception as e:
         output = StringIO()
@@ -241,7 +241,7 @@ def ota_update(settings):
             print_log_to_google_sheet(UPLOAD_TYPE.LOG, LOG_TYPE.INFO, "Already Latest.")
             return False
 
-        ota_url = settings.get("ota_url", "")
+        ota_url = settings.get("OTA_URL", "")
 
         if ota_url == "":
             print_log_to_google_sheet(UPLOAD_TYPE.LOG, LOG_TYPE.ERROR, "OTA URL Missing.")
@@ -264,11 +264,11 @@ def ota_update(settings):
         # new main.py
         with open(MAIN_FILE, "w") as f:
             f.write(new_code)
-            
+        
         save_version(new_version)
         update_current_version()
         
-        print_log_to_google_sheet(UPLOAD_TYPE.LOG, LOG_TYPE.INFO, "OTA Success.")
+        print_log_to_google_sheet(UPLOAD_TYPE.LOG, LOG_TYPE.INFO, "OTA Success. System Reboot.")
 
         time.sleep(3)
         machine.reset()
@@ -310,7 +310,7 @@ def update_current_version():
           "dataType": UPLOAD_TYPE.UPDATE_VERSION,
           "version": CURRENT_VERSION,
         }
-       
+        print(data)
         # リクエストヘッダーを追加
         headers = {
             "Content-Type": "application/json",  # 必要に応じて設定
@@ -429,9 +429,7 @@ try:
     # =========================================================
     # OTA実行
     # =========================================================
-    if ota_update(settings):
-        update_current_version()
-
+    ota_update(settings)
     
     ##====MAIN_LOOP_START====##
     while True:
@@ -477,3 +475,4 @@ except Exception as e:
 
     time.sleep(60)
     machine.reset()
+
