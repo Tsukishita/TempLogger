@@ -1,3 +1,4 @@
+##令和最新版
 import sys
 from io import StringIO
 import network
@@ -9,8 +10,6 @@ import json
 import onewire
 import ds18x20
 import gc
-
-
 
 led = Pin('LED', Pin.OUT)
 
@@ -41,12 +40,24 @@ PASSWORD = "moonlights"
 API_URL = "https://script.google.com/macros/s/"
 
 # APIキー
-API_ID  = "AKfycbwnagEE7HmRv6nlqFeDHkEM08-uXxF8iWRqqeQ7fhTxOJzvK8hMn5VQ5rJwis1O36tA"
+API_ID  = "AKfycbyCckHpUljQDeL4M2Bf8lq0zrBWT9CZbBYQVKOAdI3UKhZQ5dg8Uz0BAfCH1jzhqQE"
+
+# OTAアップデート設定
+MAIN_FILE = "main.py"
+BACKUP_FILE = "backup.py"
+
+SETTINGS_FILE = "settings.json"
+VERSION_FILE = "version.json"
+
+SETTINGS_URL = "{}{}/exec?mode=settings".format(API_URL,API_ID)
+
+CURRENT_VERSION = 1
 
 # dataType
 class UPLOAD_TYPE:
     APPEND = 1
     LOG = 2
+    UPDATE_VERSION = 3
 
 class LOG_TYPE:
     INFO = 1
@@ -111,6 +122,214 @@ def disconnect_wifi():
     del wlan
         
     machine.Pin(23, machine.Pin.OUT).low()
+    
+    
+# =========================================================
+# GASからSettings取得
+# =========================================================
+def load_settings_from_gas():
+    settings = {}
+    try:
+        print_log_to_google_sheet(UPLOAD_TYPE.LOG, LOG_TYPE.INFO,"Loading Settings...")
+        response = urequests.get(SETTINGS_URL)
+        if response.status_code == 200:
+            settings = response.json()
+
+            print(settings)
+            print_log_to_google_sheet(UPLOAD_TYPE.LOG, LOG_TYPE.INFO,"Settings Load Complete.")
+
+        response.close()
+    except Exception as e:
+        output = StringIO()
+        sys.print_exception(e, output)
+        print_log_to_google_sheet(UPLOAD_TYPE.LOG, LOG_TYPE.ERROR,"Settings Load Error:{}".format(output.getvalue()))
+
+    return settings
+
+# =========================================================
+# Flash保存
+# =========================================================
+def save_settings(settings):
+    try:
+        with open(SETTINGS_FILE, "w") as f:
+            json.dump(settings, f)
+        print_log_to_google_sheet(UPLOAD_TYPE.LOG, LOG_TYPE.INFO, "Settings Saved.")
+        return True
+    except Exception as e:
+        output = StringIO()
+        sys.print_exception(e, output)   
+        print_log_to_google_sheet(UPLOAD_TYPE.LOG, LOG_TYPE.ERROR, "Flash Save Error: {}".format(output.getvalue()))
+        return False 
+
+# =========================================================
+# Flash読込
+# =========================================================
+def load_settings_flash():
+    try:
+        with open(SETTINGS_FILE, "r") as f:
+            settings = json.load(f)
+
+        print_log_to_google_sheet(UPLOAD_TYPE.LOG, LOG_TYPE.INFO, "Flash Settings Loaded")
+        return settings
+    except Exception as e:
+        output = StringIO()
+        sys.print_exception(e, output)   
+        print_log_to_google_sheet(UPLOAD_TYPE.LOG, LOG_TYPE.ERROR, "Flash Load Error: {}".format(output.getvalue()))    
+        return {}
+
+# =========================================================
+# バージョン保存
+# =========================================================
+def save_version(version):
+    try:
+        with open(VERSION_FILE, "w") as f:
+            json.dump({
+                "version": version
+            }, f)
+            CURRENT_VERSION = version
+    except Exception as e:
+        output = StringIO()
+        sys.print_exception(e, output)   
+        print_log_to_google_sheet(UPLOAD_TYPE.LOG, LOG_TYPE.ERROR, "Flash Save Error: {}".format(output.getvalue()))    
+
+
+# =========================================================
+# バージョン取得
+# =========================================================
+def load_version():
+    try:
+        with open(VERSION_FILE, "r") as f:
+            data = json.load(f)
+        return int(data["version"])
+    except:
+        return CURRENT_VERSION
+
+# =========================================================
+# main.pyバックアップ
+# =========================================================
+def backup_current_main():
+    try:
+        with open(MAIN_FILE, "r") as src:
+            code = src.read()
+        with open(BACKUP_FILE, "w") as dst:
+            dst.write(code)
+            print_log_to_google_sheet(UPLOAD_TYPE.LOG, LOG_TYPE.INFO, "Backup Created.")    
+        return True
+    except Exception as e:
+        output = StringIO()
+        sys.print_exception(e, output)   
+        print_log_to_google_sheet(UPLOAD_TYPE.LOG, LOG_TYPE.ERROR, "Backup Error: {}".format(output.getvalue()))    
+        return False
+
+# =========================================================
+# OTA更新
+# =========================================================
+def ota_update(settings):
+    try:
+        ota_flag = settings.get("OTA_UPDATE", False)
+        if ota_flag is False:
+            print_log_to_google_sheet(UPLOAD_TYPE.LOG, LOG_TYPE.INFO, "OTA Skip.")
+            return False
+
+        new_version = int(settings.get("OTA_VERSION", "1"))
+        current_version = load_version()
+
+        print("Current Version:", current_version)
+        print("New Version:", new_version)
+
+        if new_version <= current_version:
+            print_log_to_google_sheet(UPLOAD_TYPE.LOG, LOG_TYPE.INFO, "Already Latest.")
+            return False
+
+        ota_url = settings.get("ota_url", "")
+
+        if ota_url == "":
+            print_log_to_google_sheet(UPLOAD_TYPE.LOG, LOG_TYPE.ERROR, "OTA URL Missing.")
+            return False
+
+        print_log_to_google_sheet(UPLOAD_TYPE.LOG, LOG_TYPE.INFO, "Downloading New Firmware...")
+
+        response = urequests.get(ota_url)
+        if response.status_code != 200:
+            print_log_to_google_sheet(UPLOAD_TYPE.LOG, LOG_TYPE.ERROR, "Download Failed.")
+            return False
+
+        new_code = response.text
+        response.close()
+
+        # backup
+        if not backup_current_main():
+            return False
+
+        # new main.py
+        with open(MAIN_FILE, "w") as f:
+            f.write(new_code)
+            
+        save_version(new_version)
+        update_current_version()
+        
+        print_log_to_google_sheet(UPLOAD_TYPE.LOG, LOG_TYPE.INFO, "OTA Success.")
+
+        time.sleep(3)
+        machine.reset()
+        return True
+    except Exception as e:
+        output = StringIO()
+        sys.print_exception(e, output)   
+        print_log_to_google_sheet(UPLOAD_TYPE.LOG, LOG_TYPE.ERROR, "OTA Error:{}".format(output.getvalue()))
+        restore_backup()
+        return False
+    
+# =========================================================
+# backup復元
+# =========================================================
+def restore_backup():
+    try:
+        print_log_to_google_sheet(UPLOAD_TYPE.LOG, LOG_TYPE.INFO, "Restoring Backup...")
+        with open(BACKUP_FILE, "r") as src:
+            code = src.read()
+        with open(MAIN_FILE, "w") as dst:
+            dst.write(code)
+        print_log_to_google_sheet(UPLOAD_TYPE.LOG, LOG_TYPE.INFO, "Restore Success")
+    except Exception as e:
+        output = StringIO()
+        sys.print_exception(e, output)   
+        print_log_to_google_sheet(UPLOAD_TYPE.LOG, LOG_TYPE.ERROR, "Restore Failed:{}".format(output.getvalue()))
+        
+# =========================================================
+# OTA成功後
+# GASへPOST送信して
+# CURRENT_VERSION更新
+# =========================================================
+def update_current_version():
+    try: 
+        print_log_to_google_sheet(UPLOAD_TYPE.LOG, LOG_TYPE.INFO, "Updating Current Version...")
+        
+        url = API_URL + API_ID +  "/exec" 
+        data = {
+          "dataType": UPLOAD_TYPE.UPDATE_VERSION,
+          "version": CURRENT_VERSION,
+        }
+       
+        # リクエストヘッダーを追加
+        headers = {
+            "Content-Type": "application/json",  # 必要に応じて設定
+            "User-Agent": "Python-urequests"
+        }
+
+        # JSONデータを文字列に変換
+        json_data = json.dumps(data)
+        headers["Content-Length"] = str(len(json_data))  # Content-Lengthを手動で設定
+
+        # リクエスト送信
+        response = urequests.post(url,headers=headers, data=json_data)
+        if response.status_code is not 200:
+            raise Exception("CURRENT＿VERSIONの更新に失敗しました。Status_Code:{}, Reason:{}".format(response.status_code,response.reason))
+
+        print_log_to_google_sheet(UPLOAD_TYPE.LOG, LOG_TYPE.INFO, "Updating is complete.")
+        response.close()
+    except Exception as e:
+        print_log_to_google_sheet(UPLOAD_TYPE.LOG, LOG_TYPE.ERROR, "Current Version Update Error:{}".format(e))
     
 def post_to_google_sheets(dataType, data1, data2, data3, data4):
     try:      
@@ -189,14 +408,31 @@ def print_log_to_google_sheet(dataType, logType, message):
     except Exception as e:
         output = StringIO()
         sys.print_exception(e, output)
-        print(output.getvalue())        
+        print(output.getvalue())
+        
 # メインループ
 try:
     ##====INIT_START====##
     connect_wifi()
+    
+    settings = {}
+    if network.WLAN(network.STA_IF).isconnected:
+        settings = load_settings_from_gas()
+    if settings:
+        save_settings(settings)
+    else:
+        settings = load_settings_flash()
+        
     scan_ds_sensor()   
     ##====INIT_END====##
+    
+    # =========================================================
+    # OTA実行
+    # =========================================================
+    if ota_update(settings):
+        update_current_version()
 
+    
     ##====MAIN_LOOP_START====##
     while True:
         if network.WLAN(network.STA_IF).isconnected is False: connect_wifi()
