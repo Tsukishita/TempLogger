@@ -39,7 +39,7 @@ PASSWORD = "moonlights"
 API_URL = "https://script.google.com/macros/s/"
 
 # APIキー
-API_ID  = "AKfycbyCckHpUljQDeL4M2Bf8lq0zrBWT9CZbBYQVKOAdI3UKhZQ5dg8Uz0BAfCH1jzhqQE"
+API_ID  = "AKfycbwcQ3QcOBNVlP0o6gik7sfFR-UGslA0-ZPr43gFGev-QzowH8OXwVyv2LhbCsFbAcJa"
 
 # OTAアップデート設定
 MAIN_FILE = "main.py"
