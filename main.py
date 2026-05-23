@@ -1,5 +1,5 @@
 # =========================
-CURRENT_VERSION = 8
+CURRENT_VERSION = 9
 #2026-05-23
 # =========================
 
@@ -40,7 +40,7 @@ SENSOR_5 = b'(SD"\x00\x00\x00\xe8'
 API_URL = "https://script.google.com/macros/s/"
 
 # APIキー
-API_ID  = "AKfycbw92O4TyZwt2KfMr0er4wAcB5x7oivsAcPYNppnlIOSgDSpeVs9N6ApSZqCwx1uZ8IV"
+API_ID  = "AKfycbxRL18hPyAdPza8YeC54gyzxN0efsIvr38gMzp28Rx7SrLjOiw_SSny_cOhDWGfYH39"
 
 WIFI_AUTH ={}
 
@@ -101,7 +101,6 @@ def connect_wifi():
     # Wi-Fi接続
     print("Wi-Fi接続中...")
     wlan.connect(WIFI_AUTH.get("SSID", ""),WIFI_AUTH.get("PASSWORD", ""))
-    #wlan.connect("TSUKISHITA-TP", "moonlights")
     
     # 接続待機
     timeout = 15  # 秒
@@ -228,7 +227,6 @@ def load_wifi_auth():
         with open(WIFI_AUTH_FILE, "r") as f:
             wifi_auth = json.load(f)
 
-        print_log_to_google_sheet(UPLOAD_TYPE.LOG, LOG_TYPE.INFO, "Wifi Auth Data Loaded.")
         return wifi_auth
     except:
         return {}
@@ -442,6 +440,7 @@ def print_log_to_google_sheet(dataType, logType, message):
 # メインループ
 try:
     ##====INIT_START====##
+    WIFI_AUTH = load_wifi_auth()
     connect_wifi()
     
     settings = {}
@@ -456,8 +455,6 @@ try:
         WIFI_AUTH["SSID"] = settings.get("SSID","")
         WIFI_AUTH["PASSWORD"] = settings.get("PASSWORD","")
         save_wifi_auth(WIFI_AUTH)
-    else:
-        WIFIAUTH = load_wifi_auth()
         
     SEND_INTERVAL = settings.get("SEND_INTERVAL", 5*60)
     scan_ds_sensor()
