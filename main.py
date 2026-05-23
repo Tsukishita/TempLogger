@@ -1,3 +1,8 @@
+# =========================
+CURRENT_VERSION = 7
+#2026-05-23
+# =========================
+
 import sys
 from io import StringIO
 import network
@@ -31,15 +36,13 @@ SENSOR_4 = b'(1\x9f#\x00\x00\x00\xe4'
 # 予備
 SENSOR_5 = b'(SD"\x00\x00\x00\xe8'
 
-# Wi-Fi情報
-SSID = "TSUKISHITA-TP"
-PASSWORD = "moonlights"
-
 #Sheets APIの設定
 API_URL = "https://script.google.com/macros/s/"
 
 # APIキー
 API_ID  = "AKfycbwcQ3QcOBNVlP0o6gik7sfFR-UGslA0-ZPr43gFGev-QzowH8OXwVyv2LhbCsFbAcJa"
+
+WIFI_AUTH ={}
 
 # OTAアップデート設定
 MAIN_FILE = "main.py"
@@ -47,10 +50,11 @@ BACKUP_FILE = "backup.py"
 
 SETTINGS_FILE = "settings.json"
 VERSION_FILE = "version.json"
+WIFI_AUTH_FILE = "wifi_auth.json"
 
 SETTINGS_URL = "{}{}/exec?mode=settings".format(API_URL,API_ID)
 
-CURRENT_VERSION = 1
+SEND_INTERVAL = 60*5 #DEFAULT
 
 # dataType
 class UPLOAD_TYPE:
@@ -96,11 +100,13 @@ def connect_wifi():
 
     # Wi-Fi接続
     print("Wi-Fi接続中...")
-    wlan.connect(SSID, PASSWORD)
-
+    #wlan.connect(WIFI_AUTH.get("SSID", ""),WIFI_AUTH.get("PASSWORD", ""))
+    wlan.connect("TSUKISHITA-TP", "moonlights")
+    
     # 接続待機
-    timeout = 10  # 秒
+    timeout = 15  # 秒
     while timeout > 0:
+        print(wlan.status())
         if wlan.status() < 0 or wlan.status() >= 3:
             break
         timeout -= 1
@@ -134,8 +140,7 @@ def load_settings_from_gas():
         response = urequests.get(SETTINGS_URL)
         if response.status_code == 200:
             settings = response.json()
-
-            print(settings)
+              
             print_log_to_google_sheet(UPLOAD_TYPE.LOG, LOG_TYPE.INFO,"Settings Load Complete.")
 
         response.close()
@@ -186,13 +191,11 @@ def save_version(version):
             json.dump({
                 "version": version
             }, f)
-            print(version)
             CURRENT_VERSION = version
     except Exception as e:
         output = StringIO()
         sys.print_exception(e, output)   
         print_log_to_google_sheet(UPLOAD_TYPE.LOG, LOG_TYPE.ERROR, "Flash Save Error: {}".format(output.getvalue()))    
-
 
 # =========================================================
 # バージョン取得
@@ -204,6 +207,31 @@ def load_version():
         return int(data["version"])
     except:
         return CURRENT_VERSION
+    
+# =========================================================
+# WIFIアカウント保存
+# =========================================================
+def save_wifi_auth(wifi_auth):
+    try:
+        with open(WIFI_AUTH_FILE, "w") as f:
+            json.dump(wifi_auth, f)
+    except Exception as e:
+        output = StringIO()
+        sys.print_exception(e, output)   
+        print_log_to_google_sheet(UPLOAD_TYPE.LOG, LOG_TYPE.ERROR, "Wifi Auth Data Save Error: {}".format(output.getvalue()))    
+
+# =========================================================
+# WIFIアカウント取得
+# =========================================================
+def load_wifi_auth():
+    try:
+        with open(WIFI_AUTH_FILE, "r") as f:
+            wifi_auth = json.load(f)
+
+        print_log_to_google_sheet(UPLOAD_TYPE.LOG, LOG_TYPE.INFO, "Wifi Auth Data Loaded.")
+        return wifi_auth
+    except:
+        return {}
 
 # =========================================================
 # main.pyバックアップ
@@ -423,8 +451,16 @@ try:
         save_settings(settings)
     else:
         settings = load_settings_flash()
+    
+    if settings.get("SSID","") is not "":
+        WIFI_AUTH["SSID"] = settings.get("SSID","")
+        WIFI_AUTH["PASSWORD"] = settings.get("PASSWORD","")
+        save_wifi_auth(WIFI_AUTH)
+    else:
+        WIFIAUTH = load_wifi_auth()
         
-    scan_ds_sensor()   
+    SEND_INTERVAL = settings.get("SEND_INTERVAL", 5*60)
+    scan_ds_sensor()
     ##====INIT_END====##
     
     # =========================================================
@@ -434,6 +470,8 @@ try:
     
     ##====MAIN_LOOP_START====##
     while True:
+        gc.collect()
+        
         if network.WLAN(network.STA_IF).isconnected is False: connect_wifi()
 
         # 温度変換開始
@@ -445,13 +483,15 @@ try:
         t2 = read_temperature(SENSOR_2, 0)
         t3 = read_temperature(SENSOR_3, 0)
         t4 = read_temperature(SENSOR_4, 0)
-
+        #t1 = read_temperature(SENSOR_5, 0)
+        #t2 = read_temperature(SENSOR_5, 0)
+        #t3 = read_temperature(SENSOR_5, 0)
+        #t4 = read_temperature(SENSOR_5, 0)
         post_to_google_sheets(UPLOAD_TYPE.APPEND, t1, t2, t3, t4)
         print_log_to_google_sheet(UPLOAD_TYPE.LOG, LOG_TYPE.INFO, "Success to upload temperture record.")
         
-        disconnect_wifi()
-        gc.collect()
-        time.sleep(60*5)
+        #disconnect_wifi()
+        time.sleep(SEND_INTERVAL)
     ##====MAIN_LOOP_END====##
 except Exception as e:
     output = StringIO()
