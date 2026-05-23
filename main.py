@@ -1,5 +1,5 @@
 # =========================
-CURRENT_VERSION = 7
+CURRENT_VERSION = 8
 #2026-05-23
 # =========================
 
@@ -40,7 +40,7 @@ SENSOR_5 = b'(SD"\x00\x00\x00\xe8'
 API_URL = "https://script.google.com/macros/s/"
 
 # APIキー
-API_ID  = "AKfycbwcQ3QcOBNVlP0o6gik7sfFR-UGslA0-ZPr43gFGev-QzowH8OXwVyv2LhbCsFbAcJa"
+API_ID  = "AKfycbw92O4TyZwt2KfMr0er4wAcB5x7oivsAcPYNppnlIOSgDSpeVs9N6ApSZqCwx1uZ8IV"
 
 WIFI_AUTH ={}
 
@@ -100,8 +100,8 @@ def connect_wifi():
 
     # Wi-Fi接続
     print("Wi-Fi接続中...")
-    #wlan.connect(WIFI_AUTH.get("SSID", ""),WIFI_AUTH.get("PASSWORD", ""))
-    wlan.connect("TSUKISHITA-TP", "moonlights")
+    wlan.connect(WIFI_AUTH.get("SSID", ""),WIFI_AUTH.get("PASSWORD", ""))
+    #wlan.connect("TSUKISHITA-TP", "moonlights")
     
     # 接続待機
     timeout = 15  # 秒
@@ -504,11 +504,11 @@ except Exception as e:
         print_log_to_google_sheet(UPLOAD_TYPE.LOG, LOG_TYPE.INFO, "Reboot at 1 min.")
     else:
         print(output.getvalue())
-        print("Reboot at 1 min.")
+        print("Reboot at 10sec.")
     
     Timer().init(freq=5, mode=Timer.PERIODIC, callback=lambda _: led.toggle())
 
-    time.sleep(60)
+    time.sleep(10)
     machine.reset()
 
 
