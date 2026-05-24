@@ -1,9 +1,10 @@
 # =========================
-CURRENT_VERSION = 12
-#2026-05-23
+CURRENT_VERSION = 13
+#2026-05-24
 # =========================
 
 import sys
+import uasyncio as asyncio
 from io import StringIO
 import network
 import time
@@ -14,6 +15,7 @@ import json
 import onewire
 import ds18x20
 import gc
+import rp2
 
 led = Pin('LED', Pin.OUT)
 
@@ -66,7 +68,14 @@ class LOG_TYPE:
     INFO = 1
     WARNING = 2
     ERROR = 3
-       
+
+async def reset_button_task():
+    while True:
+        if rp2.bootsel_button():
+            await asyncio.sleep(0.2)
+            machine.reset()
+        await asyncio.sleep(0.05)
+        
 def scan_ds_sensor():
     roms = ds_sensor.scan()
     if roms.count != 0:
@@ -441,6 +450,7 @@ def print_log_to_google_sheet(dataType, logType, message):
 # メインループ
 try:
     ##====INIT_START====##
+    asyncio.create_task(reset_button_task())
     WIFI_AUTH = load_wifi_auth()
     connect_wifi()
     
