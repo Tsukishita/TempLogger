@@ -42,7 +42,7 @@ SENSOR_5 = b'(SD"\x00\x00\x00\xe8'
 API_URL = "https://script.google.com/macros/s/"
 
 # APIキー
-API_ID  = "AKfycbzwR8dm7gJW8TAA2fPT2FGKN7pCtqtXkHT9WdD6279qzM4qHmjLnWQjDex7Irs_iEo"
+API_ID  = "AKfycbzPlK5yuTllWMA-z4JKyBT-tS_w3RT5gvTf6IDNGSzvG1vkqYGIn9MPKeDTkBhrGvOZ"
 
 WIFI_AUTH ={}
 
