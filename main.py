@@ -40,7 +40,7 @@ SENSOR_5 = b'(SD"\x00\x00\x00\xe8'
 API_URL = "https://script.google.com/macros/s/"
 
 # APIキー
-API_ID  = "AKfycbwFnHXrBTJPqe8X304IPnDDvqbsiN2lLsogkOfKVg0LLkY9T9F10WwWLb1e0ypkShhH"
+API_ID  = "AKfycbzwR8dm7gJW8TAA2fPT2FGKN7pCtqtXkHT9WdD6279qzM4qHmjLnWQjDex7Irs_iEo"
 
 WIFI_AUTH ={}
 
@@ -97,13 +97,14 @@ def connect_wifi():
     # WLAN有効化
     wlan = network.WLAN(network.STA_IF)
     wlan.active(True)
-
+    time.sleep(10)
+    
     # Wi-Fi接続
     print("Wi-Fi接続中...")
     wlan.connect(WIFI_AUTH.get("SSID", ""),WIFI_AUTH.get("PASSWORD", ""))
     
     # 接続待機
-    timeout = 15  # 秒
+    timeout = 10  # 秒
     while timeout > 0:
         print(wlan.status())
         if wlan.status() < 0 or wlan.status() >= 3:
