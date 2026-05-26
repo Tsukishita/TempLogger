@@ -1,5 +1,5 @@
 # =========================
-CURRENT_VERSION = 17
+CURRENT_VERSION = 18
 #2026-05-26
 # =========================
 
@@ -42,7 +42,7 @@ SENSOR_5 = b'(SD"\x00\x00\x00\xe8'
 API_URL = "https://script.google.com/macros/s/"
 
 # APIキー
-API_ID  = "AKfycbxACKhtNfeKuGmUyIja2OaU6C_CkJJ5dSW4fAJ2LOzhsJom4DbdLLLLLGPIRWLtdy8r"
+API_ID  = "AKfycbwGwS3ahwDhKtwdy0QxMOqRjppT3sKJNk7JFsXsyYDsYqOXhl0Bn-fc1SWhOvTLpTAj"
 
 WIFI_AUTH ={}
 
